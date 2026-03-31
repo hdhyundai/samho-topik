@@ -537,9 +537,20 @@
                         </div>
                     </div>
 
-                    <div class="bg-slate-900/50 p-5 rounded-xl border border-slate-800 shadow-sm">
+                    <!-- 새로 추가된 결과 내보내기(CSV) 섹션 -->
+                    <div class="bg-slate-900/50 p-5 rounded-xl border border-slate-800 shadow-sm col-span-1 lg:col-span-2">
+                        <div class="flex justify-between items-center mb-3">
+                            <label class="font-tech text-emerald-500 text-[11px] tracking-widest"><span class="mr-1">3.</span> RESULT MANAGEMENT</label>
+                            <button onclick="exportResultsToCSV()" class="bg-emerald-600/80 border border-emerald-500 text-white px-4 py-2 rounded font-tech text-xs tracking-widest hover:bg-emerald-600 transition-colors">
+                                📊 EXPORT TO CSV (엑셀 다운로드)
+                            </button>
+                        </div>
+                        <p class="text-[11px] font-kor text-slate-400 mb-2">파이어베이스에 저장된 모든 응시자의 시험 결과를 엑셀(CSV) 파일로 다운로드합니다.</p>
+                    </div>
+
+                    <div class="bg-slate-900/50 p-5 rounded-xl border border-slate-800 shadow-sm col-span-1 lg:col-span-2">
                         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-3">
-                            <label class="font-tech text-cyan-500 text-[11px] tracking-widest"><span class="mr-1">3.</span> JSON DATA & SYNC</label>
+                            <label class="font-tech text-cyan-500 text-[11px] tracking-widest"><span class="mr-1">4.</span> JSON DATA & SYNC</label>
                             <div class="flex gap-2 w-full md:w-auto items-center">
                                 <button onclick="openPreview()" id="btn-preview" class="hidden flex-1 md:flex-none bg-slate-800 border border-slate-700 text-cyan-400 px-3 py-2 rounded font-tech text-[10px] tracking-widest hover:bg-slate-700 transition-colors">👀 PREVIEW / EDIT</button>
                                 
@@ -1051,23 +1062,43 @@
                 detailedAnswers[`Q${q.num}`] = answers[i] !== null ? answers[i] + 1 : 0;
             });
 
-            try {
-                fetch(GAS_URL, {
-                    method: 'POST', mode: 'no-cors',
-                    body: JSON.stringify({ 
-                        action: 'saveResult', 
-                        registrationNo: document.getElementById('user-reg-no').value,
-                        studentName: document.getElementById('user-name').value, 
-                        score: earned_total,         
-                        lcScore: earned_lc,          
-                        rcScore: earned_rc,          
-                        correctCount: correct, 
-                        totalQuestions: actualQuestionsCount,
-                        detailedAnswers: detailedAnswers
-                    })
+            const resultData = {
+                action: 'saveResult',
+                examName: activeExamName, // 어떤 시험인지 식별
+                registrationNo: document.getElementById('user-reg-no').value,
+                studentName: document.getElementById('user-name').value, 
+                score: earned_total,         
+                lcScore: earned_lc,          
+                rcScore: earned_rc,          
+                correctCount: correct, 
+                totalQuestions: actualQuestionsCount,
+                detailedAnswers: detailedAnswers
+            };
+
+            // [하이브리드 아키텍처] 🚀 이중 안전장치 로직 적용
+            // 1순위: 파이어베이스 전송 시도
+            if (window.saveResultToFirebase) {
+                window.saveResultToFirebase(resultData).then(success => {
+                    if (!success) {
+                        // 실패하거나 아직 Firebase 설정을 안했다면 기존 구글 시트로 백업 전송
+                        sendToGoogleSheet(resultData);
+                    }
                 });
-            } catch(e) {
-                console.error("서버 전송 에러", e);
+            } else {
+                // 파이어베이스 모듈이 없으면 즉시 구글 시트로 전송
+                sendToGoogleSheet(resultData);
+            }
+
+            function sendToGoogleSheet(data) {
+                try {
+                    fetch(GAS_URL, {
+                        method: 'POST', mode: 'no-cors',
+                        body: JSON.stringify(data)
+                    });
+                    console.log("구글 시트에 백업 저장되었습니다.");
+                } catch(e) {
+                    console.error("서버 전송 에러", e);
+                }
             }
         }
 
@@ -1508,6 +1539,115 @@
                 if (btnPrev && !btnPrev.disabled) btnPrev.click();
             }
         });
+    </script>
+
+    <!-- Firebase 하이브리드 제출 모듈 (안전장치 포함) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // 👑 파이어베이스 설정 강제 적용 (가상 환경 덮어쓰기 완전 제거)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBI2vSQX7td1sfV83eBnPWfXzm-iSKvs4o",
+            authDomain: "mock-up-topik.firebaseapp.com",
+            projectId: "mock-up-topik",
+            storageBucket: "mock-up-topik.firebasestorage.app",
+            messagingSenderId: "1016359306975",
+            appId: "1:1016359306975:web:d535168a553924425e4b6a"
+        };
+
+        try {
+            // 무조건 관리자님의 mock-up-topik DB로 연결합니다.
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+            
+            const appId = "topik-cbt";
+
+            // [1] 시험 제출 기능
+            window.saveResultToFirebase = async function(resultData) {
+                try {
+                    if (!auth.currentUser) {
+                        await signInAnonymously(auth);
+                    }
+                    
+                    const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'exam_results');
+                    await addDoc(colRef, {
+                        ...resultData,
+                        timestamp: serverTimestamp()
+                    });
+                    
+                    console.log("🔥 파이어베이스에 답안이 정상적으로 저장되었습니다.");
+                    return true;
+                } catch (error) {
+                    console.error("파이어베이스 저장 에러:", error);
+                    alert("Firebase 통신 실패: " + error.message + "\n(데이터는 구글 시트로 우회 전송됩니다.)");
+                    return false; 
+                }
+            };
+
+            // [2] 엑셀(CSV) 다운로드 기능 추가!
+            window.exportResultsToCSV = async function() {
+                try {
+                    customAlert("파이어베이스에서 데이터를 긁어오는 중입니다...", true);
+                    
+                    if (!auth.currentUser) {
+                        await signInAnonymously(auth);
+                    }
+
+                    const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'exam_results');
+                    const snapshot = await getDocs(colRef);
+
+                    if(snapshot.empty) {
+                        customAlert("저장된 응시 결과가 없습니다.");
+                        return;
+                    }
+
+                    // 한글 깨짐 방지를 위한 BOM 문자 추가
+                    let csvContent = "\uFEFF"; 
+                    csvContent += "응시일시,모의고사명,수험번호,이름,총점,듣기점수,읽기점수,맞은개수\n";
+
+                    snapshot.forEach(doc => {
+                        const d = doc.data();
+                        
+                        // 날짜 변환
+                        let dateStr = 'N/A';
+                        if (d.timestamp && d.timestamp.toDate) {
+                            dateStr = new Date(d.timestamp.toDate()).toLocaleString('ko-KR');
+                        }
+                        
+                        // 쉼표(,)나 따옴표(")가 텍스트에 섞여 있을 때 엑셀 셀이 분리되지 않도록 안전처리
+                        const examName = `"${(d.examName || '').toString().replace(/"/g, '""')}"`;
+                        const regNo = `"${(d.registrationNo || '').toString().replace(/"/g, '""')}"`;
+                        const name = `"${(d.studentName || '').toString().replace(/"/g, '""')}"`;
+
+                        // CSV 행 추가
+                        csvContent += `${dateStr},${examName},${regNo},${name},${d.score},${d.lcScore},${d.rcScore},${d.correctCount}\n`;
+                    });
+
+                    // CSV 파일 생성 및 다운로드 강제 실행
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", `TOPIK_응시결과_${new Date().toISOString().slice(0,10)}.csv`);
+                    
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    customAlert("엑셀(CSV) 다운로드가 완료되었습니다!");
+
+                } catch(e) {
+                    console.error("엑셀 추출 에러:", e);
+                    customAlert("데이터 다운로드 중 오류가 발생했습니다: " + e.message);
+                }
+            };
+
+        } catch(e) {
+            console.error("Firebase 초기화 에러", e);
+        }
     </script>
 </body>
 </html>
