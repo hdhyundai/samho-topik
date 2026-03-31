@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TOPIK CBT Pro - DX Evaluation System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+    <!-- QR 코드 생성을 위한 라이브러리 추가 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Rajdhani:wght@500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --dx-dark: #030712;
+            --dx-panel: rgba(15, 23, 42, 0.85);
+            --dx-panel-border: rgba(56, 189, 248, 0.2);
+            --dx-accent: #0ea5e9;
+            --dx-accent-glow: rgba(14, 165, 233, 0.4);
+            --dx-highlight: #38bdf8;
+            --dx-warning: #fbbf24;
+        }
+        body { 
+            font-family: 'Noto Sans KR', sans-serif; 
+            background-color: var(--dx-dark); 
+            color: #e2e8f0; 
+            -webkit-tap-highlight-color: transparent; 
+            margin: 0; padding: 0; 
+            min-height: 100vh;
+        }
+        
+        .font-eng { font-family: 'Rajdhani', sans-serif; letter-spacing: 0.05em; }
+        .font-tech { font-family: 'Orbitron', sans-serif; }
+        .font-kor { font-family: 'Noto Sans KR', sans-serif; }
+
+        /* DX Background Pattern */
+        .bg-system-pattern {
+            background-color: var(--dx-dark);
+            background-image: 
+                linear-gradient(rgba(14, 165, 233, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(14, 165, 233, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-position: center center;
+            position: relative;
+        }
+        .bg-system-pattern::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at 50% 50%, transparent 20%, rgba(3, 7, 18, 0.8) 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* DX Glass Panel */
+        .glass-card {
+            background: var(--dx-panel);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--dx-panel-border);
+            border-top: 2px solid var(--dx-accent);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+        }
+        .glass-card::after {
+            content: ''; position: absolute; bottom: -1px; right: -1px; width: 15px; height: 15px;
+            border-bottom: 2px solid var(--dx-accent); border-right: 2px solid var(--dx-accent);
+        }
+        .glass-card::before {
+            content: ''; position: absolute; top: -2px; left: -1px; width: 15px; height: 15px;
+            border-top: 2px solid var(--dx-accent); border-left: 2px solid var(--dx-accent);
+        }
+
+        /* DX Buttons */
+        .btn-premium {
+            background: linear-gradient(135deg, rgba(2, 132, 199, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+            border: 1px solid var(--dx-accent);
+            color: var(--dx-highlight);
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.2), inset 0 0 10px rgba(14, 165, 233, 0.1);
+            transition: all 0.3s cubic-bezier(0.23,1,0.32,1);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-premium::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transform: skewX(-20deg); transition: 0.5s;
+        }
+        .btn-premium:hover::before { left: 150%; }
+        .btn-premium:hover {
+            background: rgba(14, 165, 233, 0.15);
+            border-color: var(--dx-highlight);
+            box-shadow: 0 0 25px var(--dx-accent-glow), inset 0 0 15px rgba(14, 165, 233, 0.3);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+        .btn-premium:active { transform: translateY(1px); }
+
+        /* Main Start Button */
+        .btn-start-system {
+            background: rgba(14, 165, 233, 0.05);
+            border: 1px solid rgba(14, 165, 233, 0.4);
+            color: var(--dx-highlight);
+            box-shadow: inset 0 0 20px rgba(14, 165, 233, 0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-start-system:hover {
+            background: rgba(14, 165, 233, 0.15);
+            border-color: var(--dx-accent);
+            box-shadow: 0 0 30px rgba(14, 165, 233, 0.2), inset 0 0 20px rgba(14, 165, 233, 0.2);
+            color: #fff;
+            transform: scale(1.02);
+        }
+        .btn-start-system:active { transform: scale(0.98); }
+
+        /* DX Inputs */
+        .system-input {
+            background: rgba(3, 7, 18, 0.6) !important;
+            border: 1px solid rgba(14, 165, 233, 0.3) !important;
+            color: #fff !important;
+            font-family: 'Rajdhani', sans-serif;
+            border-radius: 4px !important;
+            border-left: 3px solid var(--dx-accent) !important;
+            transition: all 0.3s;
+        }
+        .system-input:focus {
+            background: rgba(14, 165, 233, 0.05) !important;
+            border-color: var(--dx-highlight) !important;
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.2);
+            outline: none;
+        }
+
+        /* DX Options */
+        .option-label { 
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            transition: all 0.15s ease-in-out; 
+            cursor: pointer; 
+        }
+        .option-label:hover {
+            border-color: rgba(14, 165, 233, 0.5);
+            background: rgba(15, 23, 42, 0.9);
+        }
+        .option-input:checked + .option-label { 
+            background: rgba(14, 165, 233, 0.15);
+            border-color: var(--dx-highlight);
+            box-shadow: 0 0 15px var(--dx-accent-glow), inset 0 0 5px rgba(14, 165, 233, 0.2);
+            color: #fff;
+        }
+        .option-input:checked + .option-label .opt-num { 
+            background: var(--dx-accent); 
+            color: #ffffff; 
+            border-color: var(--dx-highlight); 
+            box-shadow: 0 0 10px var(--dx-accent-glow);
+        }
+        .opt-num {
+            background: rgba(3, 7, 18, 0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #94a3b8;
+            font-family: 'Orbitron', sans-serif;
+            transition: all 0.2s;
+        }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(3, 7, 18, 0.8); }
+        ::-webkit-scrollbar-thumb { background: rgba(14, 165, 233, 0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(14, 165, 233, 0.6); }
+
+        .h-dvh { height: 100vh; height: 100dvh; }
+
+        /* DX Scanline effect */
+        .scanline {
+            width: 100%; height: 100px;
+            background: linear-gradient(0deg, transparent, rgba(14, 165, 233, 0.05), transparent);
+            position: absolute; top: -100px; left: 0;
+            animation: scan 8s linear infinite;
+            pointer-events: none; z-index: 10;
+        }
+        @keyframes scan { 0% { top: -100px; } 100% { top: 100%; } }
+
+        /* Tech Corner Borders for Main Screen */
+        .corner-border-tl { position: absolute; top: 20px; left: 20px; width: 30px; height: 30px; border-top: 2px solid rgba(14, 165, 233, 0.5); border-left: 2px solid rgba(14, 165, 233, 0.5); }
+        .corner-border-tr { position: absolute; top: 20px; right: 20px; width: 30px; height: 30px; border-top: 2px solid rgba(14, 165, 233, 0.5); border-right: 2px solid rgba(14, 165, 233, 0.5); }
+        .corner-border-bl { position: absolute; bottom: 20px; left: 20px; width: 30px; height: 30px; border-bottom: 2px solid rgba(14, 165, 233, 0.5); border-left: 2px solid rgba(14, 165, 233, 0.5); }
+        .corner-border-br { position: absolute; bottom: 20px; right: 20px; width: 30px; height: 30px; border-bottom: 2px solid rgba(14, 165, 233, 0.5); border-right: 2px solid rgba(14, 165, 233, 0.5); }
+    </style>
+</head>
+<body class="bg-system-pattern flex items-center justify-center md:p-4">
+    <div class="scanline"></div>
+
+    <!-- 메인 컨테이너 -->
+    <div id="app-container" class="w-full max-w-5xl h-dvh md:h-[92vh] glass-card flex flex-col overflow-hidden relative border-0 md:border z-20 bg-slate-950/80">
+        
+        <!-- 상단 헤더 -->
+        <header class="bg-slate-900/80 border-b border-cyan-900/50 p-3 md:p-4 flex justify-between items-center shrink-0 z-20">
+            <div class="flex items-center gap-2 md:gap-3">
+                <div class="w-8 h-8 md:w-9 md:h-9 bg-cyan-900/40 border border-cyan-500 rounded-lg flex items-center justify-center font-tech text-cyan-400 shadow-[0_0_10px_rgba(14,165,233,0.3)] text-sm md:text-lg">HD</div>
+                <div>
+                    <h1 class="text-base md:text-lg font-kor font-black text-white tracking-tight leading-none">HD현대삼호 <span class="text-cyan-400 font-tech text-[10px] ml-1 align-top tracking-[0.2em]">CBT_TOPIK</span></h1>
+                    <p class="text-[9px] text-cyan-600/70 font-eng uppercase tracking-[0.2em] mt-0.5 hidden md:block">Professional Evaluation System</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2 md:gap-3">
+                <div id="timer-box" class="hidden px-3 py-1.5 bg-black/60 rounded border border-cyan-900/50 font-tech text-lg md:text-xl text-cyan-400 flex items-center gap-2 shadow-inner">
+                    <span class="text-[9px] text-cyan-700 tracking-widest">TIME</span>
+                    <span id="timer-text" class="tracking-wider">100:00</span>
+                </div>
+                <button id="admin-btn" onclick="openAdminAuth()" class="flex items-center justify-center bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 w-8 h-8 md:w-auto md:px-3 md:py-1.5 rounded font-tech transition-all text-xs tracking-widest group">
+                    <span class="text-cyan-500 group-hover:text-cyan-400">⚙️</span>
+                    <span class="hidden md:inline ml-1.5">SYS_ADMIN</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- [0] 메인 랜딩 화면 (이미지 디자인 참고) -->
+        <div id="screen-main" class="flex-1 overflow-y-auto bg-transparent relative z-10 flex flex-col items-center justify-center p-6 w-full min-h-full animate-fade-in">
+            <!-- 코너 포인트 효과 -->
+            <div class="corner-border-tl hidden md:block"></div>
+            <div class="corner-border-tr hidden md:block"></div>
+            <div class="corner-border-bl hidden md:block"></div>
+            <div class="corner-border-br hidden md:block"></div>
+
+            <!-- 중앙 콘텐츠 영역 -->
+            <div class="flex flex-col items-center w-full max-w-3xl">
+                <!-- 상단 프로토타입 태그 -->
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-cyan-950/30 border border-cyan-900/50 rounded mb-10 md:mb-14">
+                    <span class="w-1.5 h-1.5 bg-cyan-400"></span>
+                    <span class="text-[10px] font-tech text-cyan-500 tracking-[0.2em] uppercase">HD_DX_EVALUATION_PROTO</span>
+                </div>
+
+                <!-- 타이틀 -->
+                <h2 class="text-xl md:text-2xl font-tech text-white tracking-[0.3em] mb-4 text-center">
+                    HD HYUNDAI SAMHO
+                </h2>
+                
+                <h1 class="text-5xl md:text-6xl lg:text-7xl font-tech font-black text-white tracking-widest mb-2 text-center drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                    CBT_TOPIK
+                </h1>
+                
+                <h3 class="text-xl md:text-2xl font-tech font-bold text-cyan-400 tracking-[0.2em] mb-16 text-center drop-shadow-[0_0_10px_rgba(14,165,233,0.3)] uppercase">
+                    Professional Language Evaluation
+                </h3>
+
+                <!-- START 버튼 -->
+                <button onclick="goToIntro()" class="btn-start-system w-full max-w-md py-5 rounded flex items-center justify-center gap-3 mb-8">
+                    <span class="font-tech text-xl md:text-2xl tracking-[0.2em]">START SYSTEM</span>
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </button>
+
+                <!-- 하단 상태 표시줄 -->
+                <div class="w-full border-t border-slate-800 mt-16 pt-5 flex justify-between items-center text-[10px] md:text-xs font-tech tracking-widest">
+                    <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 bg-cyan-500" id="db-sync-dot"></span>
+                        <span class="text-slate-500">DB_SYNC: <span id="db-sync-count" class="text-cyan-400">0</span></span>
+                    </div>
+                    <div id="db-sync-status" class="text-slate-500">
+                        CONNECTING TO SERVER...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- [1] 시작 화면 (응시정보 입력 폼 - 숨김 처리) -->
+        <div id="screen-intro" class="hidden flex-1 overflow-y-auto bg-transparent relative z-10">
+            <div class="min-h-full flex flex-col items-center justify-center p-6 text-center">
+                
+                <div class="w-20 h-20 bg-cyan-900/30 border border-cyan-500/50 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(14,165,233,0.2)] mb-6 mt-4 relative">
+                    <div class="absolute inset-0 border-2 border-cyan-400 rounded-2xl border-t-transparent animate-[spin_3s_linear_infinite] opacity-50"></div>
+                    <svg class="w-10 h-10 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                </div>
+                
+                <h2 class="text-2xl md:text-3xl font-tech font-bold text-white mb-2 tracking-widest drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                    CANDIDATE <span class="text-cyan-400">INFO</span>
+                </h2>
+                <p id="intro-subtitle" class="text-cyan-600/80 font-kor font-bold tracking-widest text-xs md:text-sm mb-6 uppercase">응시자 정보 입력</p>
+                
+                <!-- 현재 응시 중인 시험 명칭 표시 -->
+                <div class="inline-flex items-center gap-2 bg-slate-900/80 text-cyan-400 px-4 py-1.5 rounded-sm font-tech text-xs mb-6 border border-cyan-900/50 tracking-widest shadow-inner">
+                    <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                    <span id="display-active-exam">SYSTEM LOADING...</span>
+                </div>
+                
+                <div id="start-form" class="w-full max-w-sm space-y-5 animate-fade-in mx-auto bg-slate-900/60 p-8 rounded-xl border border-slate-800 shadow-2xl backdrop-blur-sm">
+                    <div class="text-left space-y-5">
+                        <div class="group">
+                            <label class="block text-[10px] font-tech text-cyan-600 mb-2 tracking-[0.2em]"><span class="text-cyan-400 mr-1">▶</span> SELECT LANGUAGE</label>
+                            <div class="flex gap-2">
+                                <label class="cursor-pointer flex-1 text-center">
+                                    <input type="radio" name="lang" value="ko" class="peer sr-only" checked onchange="selectedLang=this.value; updateIntroLanguage();">
+                                    <div class="p-2 border border-slate-700 rounded bg-slate-800/50 peer-checked:bg-cyan-900/40 peer-checked:border-cyan-400 transition-all opacity-50 peer-checked:opacity-100 font-tech text-sm tracking-widest text-slate-300 peer-checked:text-cyan-300">KO</div>
+                                </label>
+                                <label class="cursor-pointer flex-1 text-center">
+                                    <input type="radio" name="lang" value="en" class="peer sr-only" onchange="selectedLang=this.value; updateIntroLanguage();">
+                                    <div class="p-2 border border-slate-700 rounded bg-slate-800/50 peer-checked:bg-cyan-900/40 peer-checked:border-cyan-400 transition-all opacity-50 peer-checked:opacity-100 font-tech text-sm tracking-widest text-slate-300 peer-checked:text-cyan-300">EN</div>
+                                </label>
+                                <label class="cursor-pointer flex-1 text-center">
+                                    <input type="radio" name="lang" value="id" class="peer sr-only" onchange="selectedLang=this.value; updateIntroLanguage();">
+                                    <div class="p-2 border border-slate-700 rounded bg-slate-800/50 peer-checked:bg-cyan-900/40 peer-checked:border-cyan-400 transition-all opacity-50 peer-checked:opacity-100 font-tech text-sm tracking-widest text-slate-300 peer-checked:text-cyan-300">ID</div>
+                                </label>
+                                <label class="cursor-pointer flex-1 text-center">
+                                    <input type="radio" name="lang" value="vi" class="peer sr-only" onchange="selectedLang=this.value; updateIntroLanguage();">
+                                    <div class="p-2 border border-slate-700 rounded bg-slate-800/50 peer-checked:bg-cyan-900/40 peer-checked:border-cyan-400 transition-all opacity-50 peer-checked:opacity-100 font-tech text-sm tracking-widest text-slate-300 peer-checked:text-cyan-300">VN</div>
+                                </label>
+                                <label class="cursor-pointer flex-1 text-center">
+                                    <input type="radio" name="lang" value="ne" class="peer sr-only" onchange="selectedLang=this.value; updateIntroLanguage();">
+                                    <div class="p-2 border border-slate-700 rounded bg-slate-800/50 peer-checked:bg-cyan-900/40 peer-checked:border-cyan-400 transition-all opacity-50 peer-checked:opacity-100 font-tech text-sm tracking-widest text-slate-300 peer-checked:text-cyan-300">NE</div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="group">
+                            <label id="label-reg-no" class="block text-[10px] font-tech text-cyan-600 mb-1.5 tracking-[0.2em]"><span class="text-cyan-400 mr-1">▶</span> REGISTRATION NO. (응시번호)</label>
+                            <input type="text" id="user-reg-no" placeholder="Ex. 26001234" class="system-input w-full p-3.5 font-tech text-base tracking-widest text-center">
+                        </div>
+                        <div class="group">
+                            <label id="label-name" class="block text-[10px] font-tech text-cyan-600 mb-1.5 tracking-[0.2em]"><span class="text-cyan-400 mr-1">▶</span> CANDIDATE NAME (이름)</label>
+                            <input type="text" id="user-name" placeholder="Ex. John Doe" class="system-input w-full p-3.5 font-eng text-base tracking-wider text-center">
+                        </div>
+                    </div>
+                    <div class="pt-2 flex flex-col gap-3">
+                        <button onclick="handleStart()" class="w-full btn-premium font-tech tracking-[0.2em] py-3.5 rounded-md text-sm flex items-center justify-center gap-2">
+                            <span>CONNECT & VERIFY</span>
+                        </button>
+                        <button onclick="goBackToMain()" class="w-full bg-transparent border border-slate-700 text-slate-400 py-3 rounded font-tech text-xs tracking-widest hover:bg-slate-800 hover:text-white transition-colors flex items-center justify-center">
+                            <span>◀ BACK TO MAIN</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- [1.5] 대기 화면 (Waiting Room) -->
+        <div id="screen-waiting" class="hidden flex-1 overflow-y-auto bg-transparent relative z-10">
+            <div class="min-h-full flex flex-col items-center justify-center p-4 md:p-6">
+                <div class="glass-card p-6 md:p-10 max-w-lg w-full border-t-cyan-400 animate-fade-in">
+                    <h2 id="wait-title" class="text-2xl font-tech text-white mb-6 text-center tracking-widest">SYSTEM STANDBY</h2>
+                    
+                    <div class="space-y-4 bg-black/40 p-5 md:p-6 rounded border border-slate-800 mb-8">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 shrink-0 border border-cyan-900 flex items-center justify-center text-cyan-400 font-tech text-sm shadow-[0_0_10px_rgba(14,165,233,0.2)]">T_</div>
+                            <div>
+                                <p id="wait-time-label" class="text-[10px] text-cyan-600 font-tech tracking-widest">TIME_LIMIT</p>
+                                <p id="waiting-time" class="font-tech text-white text-xl">0 MIN</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 shrink-0 border border-cyan-900 flex items-center justify-center text-cyan-400 font-tech text-sm shadow-[0_0_10px_rgba(14,165,233,0.2)]">Q_</div>
+                            <div>
+                                <p id="wait-q-label" class="text-[10px] text-cyan-600 font-tech tracking-widest">TOTAL_QUESTIONS</p>
+                                <p id="waiting-count" class="font-tech text-white text-xl">0 Qs</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4 pt-4 border-t border-slate-800 mt-2">
+                            <div class="w-10 h-10 shrink-0 border border-amber-900 flex items-center justify-center text-amber-500 font-tech text-sm shadow-[0_0_10px_rgba(245,158,11,0.2)]">!_</div>
+                            <div>
+                                <p id="wait-inst-label" class="text-[10px] text-amber-600 font-tech tracking-widest">INSTRUCTION</p>
+                                <p id="wait-inst-text" class="font-kor text-slate-300 text-sm leading-relaxed mt-1 break-keep">
+                                    시험 감독관의 시작 지시가 있을 때까지 대기해 주십시오.<br>
+                                    듣기 평가는 중앙 방송에 맞춰 모든 응시자가 동시에 시작합니다.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col gap-2 mt-4">
+                        <button onclick="beginExam()" class="w-full btn-premium py-4 font-tech text-sm tracking-widest flex items-center justify-center gap-3">
+                            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                            <span id="wait-btn-text">BEGIN EXAM (시험 시작)</span>
+                        </button>
+                        <button onclick="goBackToIntro()" class="w-full bg-transparent border border-slate-700 text-slate-400 py-3 rounded font-tech text-xs tracking-widest hover:bg-slate-800 hover:text-white transition-colors flex items-center justify-center">
+                            <span id="wait-back-text">◀ GO BACK (이전 화면)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- [2] 시험 화면 -->
+        <div id="screen-test" class="hidden flex-1 flex flex-col overflow-hidden bg-transparent">
+            <!-- Tech Progress Bar -->
+            <div class="w-full bg-slate-900 border-b border-slate-800 h-1.5 md:h-2 overflow-hidden shrink-0">
+                <div id="progress-bar" class="bg-cyan-500 h-full transition-all duration-300 shadow-[0_0_10px_rgba(0,229,255,0.8)] relative" style="width: 0%">
+                    <div class="absolute top-0 right-0 bottom-0 w-4 bg-white/50 blur-[2px]"></div>
+                </div>
+            </div>
+            
+            <div id="test-scroll-area" class="flex-1 overflow-y-auto p-3 md:p-6 no-scrollbar">
+                <div class="max-w-4xl mx-auto bg-slate-900/40 p-5 md:p-8 rounded-xl border border-slate-800 shadow-xl relative overflow-hidden">
+                    <!-- Tech Corner Accents -->
+                    <div class="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-cyan-500/30"></div>
+                    <div class="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-cyan-500/30"></div>
+                    
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-4 mb-5">
+                        <div class="flex items-center gap-3">
+                            <span id="q-number" class="text-cyan-400 font-tech font-bold text-2xl md:text-3xl tracking-widest">Q1.</span>
+                            <div id="q-type"></div>
+                        </div>
+                        <div class="text-right flex flex-col">
+                            <span class="text-[9px] text-cyan-700 font-tech tracking-[0.2em] mb-0.5">PROGRESS</span>
+                            <div class="text-slate-400 font-tech text-sm bg-black/40 px-3 py-1 rounded border border-slate-800 flex items-center">
+                                <span id="page-indicator-text" class="mr-0.5">Q</span><span id="current-page-num" class="text-cyan-300">1</span> <span class="mx-1">/</span> <span id="total-page-num">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 id="q-text" class="text-base md:text-lg font-kor font-medium text-white leading-relaxed break-keep mb-5"></h3>
+
+                    <div id="q-passage-container" class="hidden mb-6">
+                        <div id="q-passage" class="p-4 md:p-5 bg-slate-900/60 rounded-lg border border-slate-800 text-slate-200 text-sm md:text-base font-medium whitespace-pre-wrap leading-relaxed font-kor"></div>
+                    </div>
+
+                    <div id="q-image-box" class="hidden mb-6 rounded-lg overflow-hidden border border-slate-800 text-center bg-slate-900/50 p-3">
+                        <img id="q-image" src="" class="max-h-[25vh] md:max-h-[35vh] object-contain mx-auto cursor-zoom-in hover:opacity-80 transition-opacity rounded" onclick="zoomImg(this.src)">
+                    </div>
+
+                    <div id="options" class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 font-kor"></div>
+                </div>
+            </div>
+
+            <footer class="p-3 md:p-4 bg-slate-900/80 border-t border-cyan-900/50 flex gap-3 z-10 shrink-0 backdrop-blur-sm">
+                <div class="max-w-4xl mx-auto w-full flex gap-3">
+                    <button onclick="moveQ(-1)" id="btn-prev" class="flex-[1] py-3 rounded font-tech tracking-widest text-xs bg-transparent border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent transition-all">PREV</button>
+                    <button onclick="moveQ(1)" id="btn-next" class="flex-[2] py-3 rounded font-tech tracking-widest text-xs btn-premium transition-colors">NEXT</button>
+                </div>
+            </footer>
+        </div>
+
+        <!-- [3] 시험 제출 완료 화면 -->
+        <div id="screen-result" class="hidden flex-1 flex flex-col p-6 bg-transparent items-center justify-center relative z-10">
+            <div class="max-w-md w-full text-center py-10 glass-card border-t-emerald-500 rounded-2xl shadow-2xl p-8 animate-fade-in">
+                <div class="w-20 h-20 bg-emerald-900/40 border border-emerald-500 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <h2 class="text-2xl font-tech text-white mb-3 tracking-widest">SUBMISSION COMPLETE</h2>
+                <p class="text-slate-400 font-kor font-medium mb-8 text-sm break-keep">답안이 시스템에 성공적으로 동기화되었습니다.<br>수고하셨습니다.</p>
+                <button onclick="location.reload()" class="w-full py-4 bg-slate-800 border border-slate-700 text-slate-300 font-tech tracking-widest text-xs rounded hover:bg-slate-700 hover:text-white transition-all">
+                    RETURN TO HOME
+                </button>
+            </div>
+        </div>
+
+        <!-- [Admin] 관리자 인증 모달 -->
+        <div id="admin-auth-modal" class="hidden fixed inset-0 z-[250] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="glass-card rounded-xl p-6 max-w-xs w-full text-center shadow-2xl border-t-amber-500">
+                <div class="w-12 h-12 bg-amber-900/30 border border-amber-500 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-tech font-bold shadow-[0_0_15px_rgba(245,158,11,0.4)]">🔒</div>
+                <h3 class="text-xs font-tech text-slate-300 mb-2 tracking-widest">ADMIN AUTHENTICATION</h3>
+                <p class="text-slate-400 font-kor mb-4 text-[11px] leading-snug break-keep">시스템 관리자 비밀번호를 입력하세요.</p>
+                <input type="password" id="admin-pwd-input" class="system-input w-full p-3 mb-4 text-center font-tech tracking-widest" placeholder="PASSWORD" onkeypress="if(event.key==='Enter') verifyAdmin()">
+                <div class="flex gap-3">
+                    <button onclick="document.getElementById('admin-auth-modal').classList.add('hidden')" class="flex-1 bg-transparent border border-slate-700 text-slate-400 font-tech py-3 rounded text-xs tracking-widest hover:bg-slate-800 transition-colors">CANCEL</button>
+                    <button onclick="verifyAdmin()" class="flex-1 bg-amber-600/80 border border-amber-500 text-white py-3 rounded text-xs font-tech tracking-widest hover:bg-amber-600 transition-colors">UNLOCK</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- [Admin] 관리자 모달 -->
+        <div id="modal-admin" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 md:p-4">
+            <div class="glass-card w-full max-w-5xl h-[95vh] md:h-[90vh] rounded-xl border-t-amber-500 flex flex-col overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.8)]">
+                <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/80 shrink-0">
+                    <div>
+                        <div class="text-[10px] font-tech text-amber-500 tracking-[0.3em] mb-0.5">ADMINISTRATION</div>
+                        <h2 class="text-base md:text-lg font-tech font-bold text-white flex items-center gap-2 tracking-wider">
+                            SYSTEM CONTROL CENTER <span class="text-[9px] bg-amber-500/20 border border-amber-500 text-amber-400 px-1.5 py-0.5 rounded tracking-widest">PRO</span>
+                        </h2>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="showQRCode()" class="w-8 h-8 flex items-center justify-center rounded bg-slate-800 hover:bg-cyan-900/50 text-cyan-400 border border-slate-700 hover:border-cyan-500 text-sm font-tech transition-all" title="Show QR Code">QR</button>
+                        <button onclick="closeAdmin()" class="w-8 h-8 flex items-center justify-center rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 text-lg font-tech transition-all">X</button>
+                    </div>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-4 md:p-6 bg-transparent space-y-4 md:space-y-6 no-scrollbar">
+                    
+                    <div class="bg-slate-900/50 p-5 rounded-xl border border-slate-800 shadow-sm">
+                        <div class="bg-indigo-900/20 p-4 rounded-lg border border-indigo-500/30 mb-4">
+                            <h4 class="font-tech text-indigo-400 mb-1 text-xs tracking-widest flex items-center gap-2"><span class="text-[8px]">▶</span> ACTIVE EXAM SLOT</h4>
+                            <p class="text-[11px] font-kor text-slate-400">응시자에게 노출될 활성 모의고사를 지정하거나 새 슬롯을 생성합니다.</p>
+                        </div>
+                        
+                        <div class="flex flex-col md:flex-row gap-4">
+                            <div class="flex-1 flex gap-2">
+                                <select id="admin-active-exam-select" class="system-input p-2.5 outline-none text-sm flex-1 font-kor"></select>
+                                <button onclick="changeActiveExam()" class="bg-indigo-600/80 border border-indigo-500 text-white px-4 py-2.5 rounded font-tech text-xs tracking-widest hover:bg-indigo-600 transition-colors shrink-0">APPLY</button>
+                            </div>
+                            <div class="flex-1 flex gap-2 border-t md:border-t-0 md:border-l border-slate-800 pt-4 md:pt-0 md:pl-4">
+                                <input type="text" id="new-exam-name" placeholder="새 슬롯명 (예: 모의고사3회)" class="system-input p-2.5 outline-none text-sm flex-1 font-kor">
+                                <button onclick="createNewExamSlot()" class="bg-slate-800 border border-slate-700 text-cyan-400 px-4 py-2.5 rounded font-tech text-xs tracking-widest hover:bg-slate-700 transition-colors shrink-0">+ CREATE</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                        <div class="bg-slate-900/50 p-5 rounded-xl border border-slate-800 shadow-sm space-y-4 flex flex-col">
+                            <label class="block font-tech text-cyan-500 text-[11px] tracking-widest mb-1"><span class="mr-1">1.</span> PDF SCANNER</label>
+                            <label class="border border-dashed border-cyan-800/50 rounded-lg p-6 flex flex-col items-center justify-center bg-cyan-900/10 hover:bg-cyan-900/20 cursor-pointer transition-colors flex-1">
+                                <input type="file" id="pdf-input" accept=".pdf" class="hidden" onchange="document.getElementById('file-name').textContent = this.files[0].name">
+                                <div class="text-3xl mb-2 opacity-70">📄</div>
+                                <p class="text-cyan-400 font-tech text-[10px] tracking-widest mt-2" id="file-name">CLICK TO SELECT PDF</p>
+                            </label>
+                            <button onclick="runExtraction()" id="btn-extract" class="w-full btn-premium py-3.5 rounded text-xs tracking-widest mt-2">START AI EXTRACTION</button>
+                        </div>
+
+                        <div class="flex flex-col bg-slate-900/50 p-5 rounded-xl border border-slate-800 shadow-sm">
+                            <label class="block font-tech text-cyan-500 text-[11px] tracking-widest mb-2"><span class="mr-1">2.</span> ENGINE LOG</label>
+                            <div id="status-log" class="flex-1 bg-black/60 rounded border border-slate-800 p-4 font-tech text-[10px] text-emerald-400 space-y-1.5 overflow-y-auto min-h-[150px] shadow-inner tracking-wider">
+                                <p class="text-slate-600">> SYSTEM STANDBY...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/50 p-5 rounded-xl border border-slate-800 shadow-sm">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-3">
+                            <label class="font-tech text-cyan-500 text-[11px] tracking-widest"><span class="mr-1">3.</span> JSON DATA & SYNC</label>
+                            <div class="flex gap-2 w-full md:w-auto items-center">
+                                <button onclick="openPreview()" id="btn-preview" class="hidden flex-1 md:flex-none bg-slate-800 border border-slate-700 text-cyan-400 px-3 py-2 rounded font-tech text-[10px] tracking-widest hover:bg-slate-700 transition-colors">👀 PREVIEW / EDIT</button>
+                                
+                                <select id="admin-save-exam-select" class="hidden system-input p-1.5 text-xs font-kor outline-none"></select>
+                                <button onclick="saveToSheet()" id="btn-save" class="hidden flex-1 md:flex-none btn-premium px-4 py-2 rounded font-tech text-[10px] tracking-widest flex items-center gap-1.5"><span>☁️ CLOUD SYNC</span></button>
+                            </div>
+                        </div>
+                        <textarea id="json-result" class="w-full h-40 bg-black/60 border border-slate-800 rounded p-3 font-tech text-[10px] text-cyan-300 focus:border-cyan-500 outline-none shadow-inner tracking-wider" placeholder="{ DATA OUTPUT }" readonly></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- QR 접속 모달 -->
+    <div id="qr-modal" class="hidden fixed inset-0 z-[300] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 animate-fade-in" onclick="if(event.target===this)document.getElementById('qr-modal').classList.add('hidden')">
+        <div class="glass-card p-8 text-center max-w-sm w-full border-t-cyan-500" onclick="event.stopPropagation()">
+            <h3 class="text-xl font-tech text-cyan-400 mb-2 tracking-widest">SCAN TO ACCESS</h3>
+            <p class="text-xs text-slate-400 font-kor mb-6">스마트폰 카메라로 아래 QR 코드를 스캔하세요.</p>
+            <input type="text" id="qr-url-input" class="system-input w-full p-3 text-xs mb-6 text-center font-tech tracking-widest" placeholder="https://..." oninput="window.generateQRFromInput()">
+            <div class="flex justify-center mb-6">
+                <div id="qrcode-display" class="border-4 border-cyan-500 shadow-[0_0_20px_rgba(0,229,255,0.4)] bg-white p-3 rounded-lg"></div>
+            </div>
+            <button onclick="document.getElementById('qr-modal').classList.add('hidden')" class="btn-premium w-full py-3 font-tech text-sm tracking-widest">CLOSE</button>
+        </div>
+    </div>
+
+    <!-- 미리보기(Preview) 모달 -->
+    <div id="modal-preview" class="hidden fixed inset-0 z-[150] bg-black/90 backdrop-blur-md flex items-center justify-center p-2 md:p-4">
+        <div class="glass-card w-full max-w-4xl h-[95vh] md:h-[90vh] rounded-xl border-t-cyan-500 flex flex-col overflow-hidden shadow-[0_0_40px_rgba(0,229,255,0.1)]">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/90 z-10 shrink-0">
+                <h3 class="font-tech font-bold text-xs md:text-sm text-cyan-400 tracking-widest">👀 DATA INSPECTION & MEDIA ATTACH</h3>
+                <button onclick="closePreview()" class="w-7 h-7 flex items-center justify-center bg-slate-800 border border-slate-700 rounded text-slate-400 hover:text-white hover:bg-slate-700 font-tech transition-colors">X</button>
+            </div>
+            <div id="preview-content" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-transparent no-scrollbar font-kor">
+                <!-- Items injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 컴팩트 커스텀 알림(Alert) -->
+    <div id="modal-alert" class="hidden fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-card rounded-xl p-6 max-w-xs w-full text-center shadow-2xl border-t-red-500">
+            <div class="w-12 h-12 bg-red-900/30 border border-red-500 text-red-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-tech font-bold shadow-[0_0_15px_rgba(239,68,68,0.4)]" id="alert-icon">!</div>
+            <h3 class="text-xs font-tech text-slate-300 mb-2 tracking-widest">SYSTEM ALERT</h3>
+            <p id="alert-message" class="text-white font-kor mb-6 text-sm leading-snug break-keep">메시지 내용</p>
+            <button onclick="document.getElementById('modal-alert').classList.add('hidden')" class="w-full bg-slate-800 border border-slate-700 text-slate-300 font-tech py-3 rounded text-xs tracking-widest hover:bg-slate-700 hover:text-white transition-colors">ACKNOWLEDGE</button>
+        </div>
+    </div>
+
+    <!-- 컴팩트 커스텀 확인(Confirm) -->
+    <div id="modal-confirm" class="hidden fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-card rounded-xl p-6 max-w-xs w-full text-center shadow-2xl border-t-cyan-500">
+            <div class="w-12 h-12 bg-cyan-900/30 border border-cyan-500 text-cyan-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-tech font-bold shadow-[0_0_15px_rgba(14,165,233,0.4)]">?</div>
+            <h3 class="text-xs font-tech text-slate-300 mb-2 tracking-widest">CONFIRMATION</h3>
+            <p id="confirm-message" class="text-white font-kor mb-6 text-sm leading-snug break-keep">시험을 종료하시겠습니까?</p>
+            <div class="flex gap-3">
+                <button onclick="closeConfirm(false)" class="flex-1 bg-transparent border border-slate-700 text-slate-400 font-tech py-3 rounded text-xs tracking-widest hover:bg-slate-800 transition-colors">CANCEL</button>
+                <button onclick="closeConfirm(true)" class="flex-1 btn-premium py-3 rounded text-xs font-tech tracking-widest">CONFIRM</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 이미지 확대 -->
+    <div id="modal-zoom" class="hidden fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 cursor-zoom-out" onclick="this.classList.add('hidden')">
+        <img id="zoom-img" src="" class="max-w-full max-h-[90vh] object-contain rounded border border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.8)]">
+    </div>
+
+    <script>
+        function customAlert(msg, isLoader = false) {
+            document.getElementById('alert-message').innerHTML = msg;
+            document.getElementById('alert-icon').textContent = isLoader ? '⏳' : '!';
+            document.getElementById('alert-icon').className = isLoader 
+                ? "w-12 h-12 bg-cyan-900/30 border border-cyan-500 text-cyan-400 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-tech animate-[spin_3s_linear_infinite] shadow-[0_0_15px_rgba(14,165,233,0.4)]" 
+                : "w-12 h-12 bg-red-900/30 border border-red-500 text-red-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-tech font-bold shadow-[0_0_15px_rgba(239,68,68,0.4)]";
+            document.getElementById('modal-alert').classList.remove('hidden');
+        }
+
+        let confirmCallback = null;
+        function customConfirm(msg, callback) {
+            document.getElementById('confirm-message').textContent = msg;
+            confirmCallback = callback;
+            document.getElementById('modal-confirm').classList.remove('hidden');
+        }
+        function closeConfirm(isConfirmed) {
+            document.getElementById('modal-confirm').classList.add('hidden');
+            if(isConfirmed && confirmCallback) confirmCallback();
+        }
+
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbzOwJW7da8CEbdcfA1YM9bX5g-SmnEmGHBEbG9TZfhse8JCTha7saxmybmFcOMzwIWz/exec';
+        const apiKey = ""; 
+
+        // 다국어 지원 상태 변수 및 딕셔너리
+        let selectedLang = 'ko';
+        const i18n = {
+            ko: {
+                standby: "SYSTEM STANDBY",
+                timeLimit: "TIME_LIMIT",
+                min: "MIN",
+                totalQs: "TOTAL_QUESTIONS",
+                qs: "Qs",
+                instruction: "INSTRUCTION",
+                instText: "시험 감독관의 시작 지시가 있을 때까지 대기해 주십시오.<br>듣기 평가는 중앙 방송에 맞춰 모든 응시자가 동시에 시작합니다.",
+                beginBtn: "BEGIN EXAM (시험 시작)",
+                backBtn: "◀ GO BACK (이전 화면)",
+                subtitle: "응시자 정보 입력",
+                regNoLabel: "▶ REGISTRATION NO. (응시번호)",
+                nameLabel: "▶ CANDIDATE NAME (이름)"
+            },
+            en: {
+                standby: "SYSTEM STANDBY",
+                timeLimit: "TIME LIMIT",
+                min: "MIN",
+                totalQs: "TOTAL QUESTIONS",
+                qs: "Qs",
+                instruction: "INSTRUCTION",
+                instText: "Please wait until the proctor instructs you to begin.<br>The listening test will start simultaneously for all candidates via central broadcast.",
+                beginBtn: "BEGIN EXAM",
+                backBtn: "◀ GO BACK",
+                subtitle: "ENTER CANDIDATE INFORMATION",
+                regNoLabel: "▶ REGISTRATION NO.",
+                nameLabel: "▶ CANDIDATE NAME"
+            },
+            id: {
+                standby: "SISTEM BERSIAP",
+                timeLimit: "BATAS WAKTU",
+                min: "MENIT",
+                totalQs: "TOTAL PERTANYAAN",
+                qs: "Soal",
+                instruction: "PETUNJUK",
+                instText: "Harap tunggu sampai pengawas menginstruksikan Anda untuk mulai.<br>Tes mendengarkan akan dimulai secara bersamaan untuk semua peserta melalui siaran pusat.",
+                beginBtn: "MULAI UJIAN",
+                backBtn: "◀ KEMBALI",
+                subtitle: "MASUKKAN INFORMASI KANDIDAT",
+                regNoLabel: "▶ NOMOR PENDAFTARAN",
+                nameLabel: "▶ NAMA KANDIDAT"
+            },
+            vi: {
+                standby: "HỆ THỐNG CHỜ",
+                timeLimit: "THỜI GIAN",
+                min: "PHÚT",
+                totalQs: "TỔNG SỐ CÂU HỎI",
+                qs: "Câu",
+                instruction: "HƯỚNG DẪN",
+                instText: "Vui lòng đợi cho đến khi giám thị yêu cầu bắt đầu.<br>Phần thi nghe sẽ bắt đầu đồng thời cho tất cả thí sinh qua hệ thống phát thanh trung tâm.",
+                beginBtn: "BẮT ĐẦU THI",
+                backBtn: "◀ QUAY LẠI",
+                subtitle: "NHẬP THÔNG TIN THÍ SINH",
+                regNoLabel: "▶ SỐ BÁO DANH",
+                nameLabel: "▶ TÊN THÍ SINH"
+            },
+            ne: {
+                standby: "प्रणाली तयारी अवस्था",
+                timeLimit: "समय सीमा",
+                min: "मिनेट",
+                totalQs: "कुल प्रश्नहरू",
+                qs: "प्रश्न",
+                instruction: "निर्देशन",
+                instText: "कृपया निरीक्षकले सुरु गर्न निर्देशन नदिएसम्म पर्खनुहोस्।<br>सुन्ने परीक्षा केन्द्रीय प्रसारण मार्फत सबै उम्मेद्वारहरूको लागि एकै साथ सुरु हुनेछ।",
+                beginBtn: "परीक्षा सुरु गर्नुहोस्",
+                backBtn: "◀ पछाडि जानुहोस्",
+                subtitle: "उम्मेदवार जानकारी प्रविष्ट गर्नुहोस्",
+                regNoLabel: "▶ दर्ता नम्बर",
+                nameLabel: "▶ उम्मेदवारको नाम"
+            }
+        };
+
+        let db_questions = [];
+        let current_idx = 0;
+        let answers = [];
+        let timer_id;
+        let time_left = 100 * 60; // 기본 100분 세팅
+        let realQuestionCount = 0;
+        
+        // 상태 관리 변수 (에러 방지용)
+        let isExamRunning = false;
+        let isSubmitting = false;
+
+        let activeExamName = "모의고사1회";
+        let availableExams = ["모의고사1회"];
+
+        // 페이지 이탈 방지 (새로고침 차단)
+        window.addEventListener('beforeunload', function (e) {
+            if (isExamRunning) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
+        function isImage(opt) {
+            if(!opt) return false;
+            return opt.match(/^https?:\/\//) || opt.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) || opt.startsWith('data:image');
+        }
+
+        function renderOptionContent(opt) {
+            if (!opt) return '';
+            if (isImage(opt)) {
+                return `<img src="${opt}" alt="보기 이미지" class="max-h-20 md:max-h-28 object-contain rounded border border-slate-700 bg-slate-800 p-1 cursor-zoom-in hover:opacity-80 transition-opacity" onclick="event.preventDefault(); event.stopPropagation(); zoomImg(this.src)">`;
+            }
+            return `<span class="text-slate-200 font-medium text-sm md:text-base break-keep leading-snug">${opt}</span>`;
+        }
+
+        // 🔥 더미 데이터
+        const dummyData = [
+            { "num": "예시", "type": "듣기", "passage": "가: 공책이 있어요?\n나: ____________________", "question": "※ [1~4] 다음을 듣고 <보기>와 같이 물음에 맞는 대답을 고르십시오.", "image": "", "opt1": "네, 공책이 있어요.", "opt2": "네, 공책을 사요.", "opt3": "아니요, 공책에 써요.", "opt4": "아니요, 공책이 작아요.", "answer": "", "score": 0 },
+            { "num": 1, "type": "듣기", "passage": "", "question": "(4점)", "image": "", "opt1": "네, 회사원이에요.", "opt2": "네, 회사원이 있어요.", "opt3": "아니요, 회사원이 없어요.", "opt4": "아니요, 회사원이 일해요.", "answer": 0, "score": 4 },
+            { "num": 2, "type": "듣기", "passage": "", "question": "(4점)", "image": "", "opt1": "네, 책을 사요.", "opt2": "네, 책이 비싸요.", "opt3": "아니요, 책을 좋아해요.", "opt4": "아니요, 책을 안 읽어요.", "answer": 0, "score": 4 },
+            { "num": "예시", "type": "듣기", "passage": "가: 안녕히 계세요.\n나: ____________________", "question": "※ [5~6] 다음을 듣고 <보기>와 같이 이어지는 말을 고르십시오.", "image": "", "opt1": "축하합니다.", "opt2": "모르겠습니다.", "opt3": "안녕히 가세요.", "opt4": "처음 뵙겠습니다.", "answer": "", "score": 0 },
+            { "num": 5, "type": "듣기", "passage": "", "question": "(4점)", "image": "", "opt1": "실례합니다.", "opt2": "반갑습니다.", "opt3": "고맙습니다.", "opt4": "환영합니다.", "answer": 2, "score": 4 },
+            { "num": "예시", "type": "읽기", "passage": "오늘은 월요일입니다. 내일은 화요일입니다.", "question": "※ [31~33] 무엇에 대한 내용입니까? <보기>와 같이 알맞은 것을 고르십시오.", "image": "", "opt1": "공부", "opt2": "얼굴", "opt3": "요일", "opt4": "계절", "answer": "", "score": 0 },
+            { "num": 31, "type": "읽기", "passage": "아버지와 어머니가 있습니다. 그리고 형도 있습니다.", "question": "(2점)", "image": "", "opt1": "가족", "opt2": "이름", "opt3": "나이", "opt4": "시간", "answer": 0, "score": 2 }
+        ];
+
+        window.onload = () => {
+            const isMobileOrTablet = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            if (isMobileOrTablet) {
+                const adminBtn = document.getElementById('admin-btn');
+                if (adminBtn) adminBtn.style.display = 'none';
+            }
+
+            initTestData(dummyData, false);
+            
+            fetch(GAS_URL)
+                .then(res => {
+                    if(!res.ok) throw new Error("네트워크 응답이 올바르지 않습니다.");
+                    return res.json();
+                })
+                .then(json => {
+                    if (json.status === "success") {
+                        if(json.activeExam) activeExamName = json.activeExam;
+                        if(json.exams && json.exams.length > 0) availableExams = json.exams;
+                        
+                        document.getElementById('display-active-exam').textContent = activeExamName;
+                        updateAdminExamDropdowns();
+
+                        if (json.data && json.data.length > 0) {
+                            const validData = json.data.filter(r => r[0] && r[0].toString().trim() !== '문제번호');
+                            const cloudData = validData.map((r, idx) => ({
+                                num: r[0] || (idx + 1), type: r[1] || '읽기', passage: r[2] || '',
+                                question: r[3] || '', image: r[4] || '',
+                                options: [r[5], r[6], r[7], r[8]],
+                                answer: (r[9] !== undefined && r[9] !== "" && !isNaN(parseInt(r[9]))) ? parseInt(r[9]) - 1 : "",
+                                score: (r[10] !== undefined && r[10] !== "") ? parseInt(r[10]) : (r[1] === '듣기' ? 3 : 2)
+                            }));
+                            
+                            if(cloudData.length > 0) {
+                                initTestData(cloudData, true);
+                            } else {
+                                throw new Error("시트에 올바른 문항 데이터가 없습니다.");
+                            }
+                        } else {
+                            updateDbSyncStatus('⚠️ DB EMPTY', 'text-amber-400');
+                        }
+                    } else {
+                        throw new Error(json.message || "서버에서 알 수 없는 오류를 반환했습니다.");
+                    }
+                }).catch((err) => {
+                    console.warn("DB 연동 에러:", err);
+                    updateDbSyncStatus('❌ CONNECTION FAILED', 'text-red-500');
+                });
+        };
+
+        function updateDbSyncStatus(msg, colorClass) {
+            const statusEl = document.getElementById('db-sync-status');
+            statusEl.textContent = msg;
+            statusEl.className = colorClass + " tracking-widest text-[10px] md:text-xs font-tech";
+        }
+
+        function updateAdminExamDropdowns() {
+            const selectActive = document.getElementById('admin-active-exam-select');
+            const selectSave = document.getElementById('admin-save-exam-select');
+            let optionsHtml = '';
+            availableExams.forEach(exam => {
+                optionsHtml += `<option value="${exam}" ${exam === activeExamName ? 'selected' : ''}>${exam}</option>`;
+            });
+            if(selectActive) selectActive.innerHTML = optionsHtml;
+            if(selectSave) selectSave.innerHTML = optionsHtml;
+        }
+
+        function initTestData(dataArray, isCloud) {
+            db_questions = dataArray;
+            answers = new Array(db_questions.length).fill(null);
+            
+            realQuestionCount = 0;
+            db_questions.forEach(q => {
+                if(q.num === '예시' || q.num === '보기') {
+                    q.realIdx = '-';
+                } else {
+                    realQuestionCount++; q.realIdx = realQuestionCount;
+                }
+            });
+
+            document.getElementById('total-page-num').textContent = realQuestionCount;
+            
+            if(isCloud) {
+                document.getElementById('db-sync-count').textContent = realQuestionCount;
+                updateDbSyncStatus('SECURE CONNECTION ESTABLISHED', 'text-emerald-400');
+                document.getElementById('db-sync-dot').classList.replace('bg-cyan-500', 'bg-emerald-400');
+            }
+        }
+
+        function goToIntro() {
+            updateIntroLanguage();
+            document.getElementById('screen-main').classList.add('hidden');
+            document.getElementById('screen-intro').classList.remove('hidden');
+        }
+
+        function updateIntroLanguage() {
+            const t = i18n[selectedLang];
+            document.getElementById('intro-subtitle').textContent = t.subtitle;
+            document.getElementById('label-reg-no').innerHTML = `<span class="text-cyan-400 mr-1">▶</span> ${t.regNoLabel}`;
+            document.getElementById('label-name').innerHTML = `<span class="text-cyan-400 mr-1">▶</span> ${t.nameLabel}`;
+        }
+
+        function goBackToMain() {
+            document.getElementById('screen-intro').classList.add('hidden');
+            document.getElementById('screen-main').classList.remove('hidden');
+        }
+
+        function handleStart() {
+            const regNo = document.getElementById('user-reg-no').value.trim();
+            const name = document.getElementById('user-name').value.trim();
+            if(!regNo || !name) return customAlert("응시번호와 이름을 모두 입력해주세요.");
+            
+            const t = i18n[selectedLang];
+            document.getElementById('wait-title').textContent = t.standby;
+            document.getElementById('wait-time-label').textContent = t.timeLimit;
+            document.getElementById('wait-q-label').textContent = t.totalQs;
+            document.getElementById('wait-inst-label').textContent = t.instruction;
+            document.getElementById('wait-inst-text').innerHTML = t.instText;
+            document.getElementById('wait-btn-text').textContent = t.beginBtn;
+            document.getElementById('wait-back-text').textContent = t.backBtn;
+
+            document.getElementById('waiting-count').textContent = realQuestionCount + " " + t.qs;
+            document.getElementById('waiting-time').textContent = Math.floor(time_left / 60) + " " + t.min;
+
+            document.getElementById('screen-intro').classList.add('hidden');
+            document.getElementById('screen-waiting').classList.remove('hidden');
+        }
+
+        function goBackToIntro() {
+            document.getElementById('screen-waiting').classList.add('hidden');
+            document.getElementById('screen-intro').classList.remove('hidden');
+        }
+
+        function beginExam() {
+            document.getElementById('screen-waiting').classList.add('hidden');
+            document.getElementById('screen-test').classList.remove('hidden');
+            document.getElementById('timer-box').classList.remove('hidden');
+            isExamRunning = true;
+            renderQ();
+            startTimer();
+        }
+
+        function startTimer() {
+            const timerText = document.getElementById('timer-text');
+            timer_id = setInterval(() => {
+                time_left--;
+                if(time_left <= 0) finalizeExam();
+                const m = Math.floor(time_left/60).toString().padStart(2,'0');
+                const s = (time_left%60).toString().padStart(2,'0');
+                timerText.textContent = `${m}:${s}`;
+            }, 1000);
+        }
+
+        function renderQ() {
+            const q = db_questions[current_idx];
+            const isExample = (q.num === '예시' || q.num === '보기');
+            
+            // 새 문제 렌더링 시 스크롤을 최상단으로 이동
+            const scrollArea = document.getElementById('test-scroll-area');
+            if (scrollArea) scrollArea.scrollTop = 0;
+
+            const qNumEl = document.getElementById('q-number');
+            const pageIndText = document.getElementById('page-indicator-text');
+
+            if(isExample) {
+                qNumEl.innerHTML = `<span class="text-emerald-400 font-extrabold text-xl md:text-2xl tracking-normal font-kor">[예시]</span>`;
+                if(pageIndText) pageIndText.textContent = "P";
+            } else {
+                qNumEl.textContent = `Q${q.num}.`;
+                if(pageIndText) pageIndText.textContent = "Q";
+            }
+            
+            const typeBadge = q.type === '듣기' 
+                ? `<span class="bg-cyan-900/50 border border-cyan-800 text-cyan-400 px-2 py-0.5 rounded text-[10px] font-tech tracking-widest">LISTENING</span>`
+                : `<span class="bg-indigo-900/50 border border-indigo-800 text-indigo-400 px-2 py-0.5 rounded text-[10px] font-tech tracking-widest">READING</span>`;
+            document.getElementById('q-type').innerHTML = typeBadge;
+
+            document.getElementById('current-page-num').textContent = q.realIdx;
+            document.getElementById('progress-bar').style.width = `${((current_idx+1)/db_questions.length)*100}%`;
+
+            const qTextEl = document.getElementById('q-text');
+            
+            let rawQuestionText = q.question;
+            if (!isExample) {
+                const numRegex1 = new RegExp(`^${q.num}\\.\\s*`);
+                const numRegex2 = new RegExp(`\\n${q.num}\\.\\s*`);
+                rawQuestionText = rawQuestionText.replace(numRegex1, '').replace(numRegex2, '\n');
+            }
+            rawQuestionText = rawQuestionText.replace(/윗글/g, '아래 글');
+
+            if (q.type === '듣기' && rawQuestionText.includes('점)') && !isExample) {
+                qTextEl.innerHTML = `<span class="inline-block bg-slate-800 border border-slate-700 text-cyan-400 px-2 py-0.5 rounded text-xs mr-1 font-tech tracking-widest">[AUDIO]</span> <span class="text-white text-base">${rawQuestionText.replace(/\n/g, '<br>')}</span>`;
+            } else {
+                qTextEl.innerHTML = rawQuestionText.replace(/\n/g, '<br>');
+            }
+
+            const passContainer = document.getElementById('q-passage-container');
+            const passBox = document.getElementById('q-passage');
+            
+            if(q.passage && q.passage.trim()) {
+                let formattedPassage = q.passage.replace(/\n/g, '<br>');
+                if (isExample) {
+                    passBox.className = 'p-4 md:p-5 bg-slate-800/80 rounded-lg border border-slate-700 text-slate-300 text-sm md:text-base font-bold whitespace-pre-wrap leading-relaxed font-kor';
+                    passBox.innerHTML = `<div class="w-fit bg-slate-700/80 text-cyan-300 text-[10px] font-tech tracking-widest px-2 py-0.5 rounded mb-2 border border-slate-600">&lt; EXAMPLE &gt;</div>${formattedPassage}`;
+                } else {
+                    passBox.className = 'p-4 md:p-5 bg-slate-900/60 rounded-lg border border-slate-800 text-slate-200 text-sm md:text-base font-medium whitespace-pre-wrap leading-relaxed font-kor';
+                    passBox.innerHTML = formattedPassage;
+                }
+                passContainer.classList.remove('hidden');
+            } else { passContainer.classList.add('hidden'); }
+
+            const imgBox = document.getElementById('q-image-box');
+            if(q.image && q.image.trim()) {
+                document.getElementById('q-image').src = q.image;
+                imgBox.classList.remove('hidden');
+            } else { imgBox.classList.add('hidden'); }
+
+            const optBox = document.getElementById('options');
+            optBox.innerHTML = '';
+            q.options.forEach((opt, i) => {
+                if(!opt || opt.trim() === '') return;
+                const checked = answers[current_idx] === i ? 'checked' : '';
+                const renderedOpt = renderOptionContent(opt); 
+                
+                optBox.insertAdjacentHTML('beforeend', `
+                    <label class="relative group block">
+                        <input type="radio" name="opt" class="option-input sr-only" ${checked} onchange="saveAnswer(${i})">
+                        <div class="option-label p-3 md:p-4 rounded-xl flex items-center">
+                            <span class="opt-num w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full mr-3 shrink-0 text-sm font-bold">${i+1}</span>
+                            ${renderedOpt}
+                        </div>
+                    </label>
+                `);
+            });
+
+            document.getElementById('btn-prev').disabled = current_idx === 0;
+            document.getElementById('btn-next').innerHTML = current_idx === db_questions.length - 1 ? "<span>SUBMIT</span>" : "<span>NEXT</span>";
+            if(isExample) document.getElementById('btn-next').innerHTML = "<span>START EXAM</span>";
+        }
+
+        function saveAnswer(idx) {
+            answers[current_idx] = idx;
+            setTimeout(() => { if(current_idx < db_questions.length - 1) moveQ(1); }, 300);
+        }
+
+        function moveQ(dir) {
+            if(dir === 1 && current_idx === db_questions.length - 1) {
+                customConfirm("시험을 종료하고 답안을 제출하시겠습니까?", finalizeExam);
+                return;
+            }
+            current_idx += dir;
+            renderQ();
+        }
+
+        async function finalizeExam() {
+            if (isSubmitting) return; 
+            isSubmitting = true;
+            isExamRunning = false; 
+
+            clearInterval(timer_id);
+            document.getElementById('screen-test').classList.add('hidden');
+            document.getElementById('timer-box').classList.add('hidden');
+            
+            document.getElementById('screen-result').classList.remove('hidden');
+
+            let correct = 0;
+            let actualQuestionsCount = 0;
+            let earned_total = 0;
+            let earned_lc = 0;
+            let earned_rc = 0;
+            let detailedAnswers = {}; 
+
+            db_questions.forEach((q, i) => {
+                if(q.num === '예시' || q.num === '보기') return;
+                
+                actualQuestionsCount++;
+
+                let point = parseInt(q.score, 10);
+                if (isNaN(point) || point === 0) {
+                    const scoreMatch = q.question.match(/(\d+)\s*점/);
+                    if (scoreMatch) {
+                        point = parseInt(scoreMatch[1], 10);
+                    } else {
+                        point = (q.type === '듣기') ? 3 : 2;
+                    }
+                }
+
+                if(q.answer !== "" && q.answer !== null && answers[i] === q.answer) {
+                    correct++;
+                    earned_total += point;
+                    if (q.type === '듣기') earned_lc += point;
+                    else earned_rc += point;
+                }
+
+                detailedAnswers[`Q${q.num}`] = answers[i] !== null ? answers[i] + 1 : 0;
+            });
+
+            try {
+                fetch(GAS_URL, {
+                    method: 'POST', mode: 'no-cors',
+                    body: JSON.stringify({ 
+                        action: 'saveResult', 
+                        registrationNo: document.getElementById('user-reg-no').value,
+                        studentName: document.getElementById('user-name').value, 
+                        score: earned_total,         
+                        lcScore: earned_lc,          
+                        rcScore: earned_rc,          
+                        correctCount: correct, 
+                        totalQuestions: actualQuestionsCount,
+                        detailedAnswers: detailedAnswers
+                    })
+                });
+            } catch(e) {
+                console.error("서버 전송 에러", e);
+            }
+        }
+
+        function openAdminAuth() {
+            document.getElementById('admin-pwd-input').value = '';
+            document.getElementById('admin-auth-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('admin-pwd-input').focus(), 100);
+        }
+
+        function verifyAdmin() {
+            const pwd = document.getElementById('admin-pwd-input').value;
+            const hash = Array.from(pwd).reduce((h, c) => Math.imul(31, h) + c.charCodeAt(0) | 0, 0);
+            
+            if (hash === 1569122) {
+                document.getElementById('admin-auth-modal').classList.add('hidden');
+                openAdmin();
+            } else {
+                customAlert("접근 권한이 없습니다. (비밀번호 오류)");
+                document.getElementById('admin-pwd-input').value = '';
+            }
+        }
+
+        function openAdmin() { document.getElementById('modal-admin').classList.remove('hidden'); }
+        function closeAdmin() { document.getElementById('modal-admin').classList.add('hidden'); }
+        
+        function showQRCode() {
+            document.getElementById('qr-url-input').value = window.location.href;
+            document.getElementById('qr-modal').classList.remove('hidden');
+            generateQRFromInput();
+        }
+        
+        function generateQRFromInput() {
+            const container = document.getElementById('qrcode-display');
+            container.innerHTML = '';
+            new QRCode(container, {
+                text: document.getElementById('qr-url-input').value,
+                width: 200,
+                height: 200,
+                colorDark : "#0ea5e9", 
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+
+        async function changeActiveExam() {
+            const targetExam = document.getElementById('admin-active-exam-select').value;
+            if(!targetExam) return;
+            customAlert("응시자 화면의 시험 설정을 변경 중입니다...", true);
+            try {
+                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'setActiveExam', examName: targetExam }) });
+                customAlert(`성공적으로 '${targetExam}'(으)로 변경되었습니다.\n새로고침 합니다.`);
+                setTimeout(() => location.reload(), 1500);
+            } catch(e) { customAlert("설정 변경에 실패했습니다."); }
+        }
+
+        async function createNewExamSlot() {
+            const newExam = document.getElementById('new-exam-name').value.trim();
+            if(!newExam) return customAlert("생성할 새 모의고사 이름을 입력하세요.");
+            if(availableExams.includes(newExam)) return customAlert("이미 존재하는 이름입니다. 다른 이름을 사용하세요.");
+            
+            customAlert("새 슬롯을 생성하고 활성화하는 중입니다...", true);
+            try {
+                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'setActiveExam', examName: newExam }) });
+                customAlert(`'${newExam}' 슬롯이 생성되었습니다.\n새로고침 합니다.`);
+                setTimeout(() => location.reload(), 1500);
+            } catch(e) { customAlert("슬롯 생성에 실패했습니다."); }
+        }
+
+        function writeLog(msg, type = 'info') {
+            const logBox = document.getElementById('status-log');
+            const color = type === 'error' ? 'text-red-400' : (type === 'success' ? 'text-cyan-400' : (type === 'warning' ? 'text-amber-400' : 'text-emerald-400'));
+            logBox.innerHTML += `<p class="${color}">[${new Date().toLocaleTimeString()}] ${msg}</p>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        async function runExtraction() {
+            const fileInput = document.getElementById('pdf-input');
+            if(!fileInput.files[0]) return customAlert("PDF 파일을 먼저 선택해주세요.");
+            
+            const btn = document.getElementById('btn-extract');
+            btn.disabled = true;
+            document.getElementById('status-log').innerHTML = '';
+            document.getElementById('json-result').value = '';
+            document.getElementById('btn-preview').classList.add('hidden');
+            document.getElementById('btn-save').classList.add('hidden');
+            document.getElementById('admin-save-exam-select').classList.add('hidden');
+            
+            try {
+                writeLog("PDF 파싱 중...", "info");
+                const arrayBuffer = await fileInput.files[0].arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+                
+                const startPage = 1;
+                const endPage = pdf.numPages;
+
+                writeLog(`총 ${endPage}페이지 문서 스캔을 시작합니다. (안정성 최우선: 순차 처리 모드 🛡️)`, "info");
+                let allItems = [];
+
+                for(let i = startPage; i <= endPage; i++) {
+                    writeLog(`[${i}/${endPage}] 렌더링 및 AI 분석 요청 중...`);
+                    const page = await pdf.getPage(i);
+                    
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.height = viewport.height; canvas.width = viewport.width;
+                    await page.render({ canvasContext: ctx, viewport }).promise;
+                    
+                    const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+                    const items = await callGeminiAI(base64);
+                    
+                    if(items && items.length > 0) {
+                        writeLog(`성공: ${i}페이지 ${items.length}개 항목 추출`, "success");
+                        allItems = [...allItems, ...items];
+                    } else {
+                        writeLog(`알림: ${i}페이지 문항 없음`, "warning");
+                    }
+                    
+                    if(i < endPage) await new Promise(r => setTimeout(r, 2000));
+                }
+                
+                document.getElementById('json-result').value = JSON.stringify(allItems, null, 2);
+                document.getElementById('btn-preview').classList.remove('hidden');
+                document.getElementById('btn-save').classList.remove('hidden');
+                document.getElementById('admin-save-exam-select').classList.remove('hidden');
+                writeLog("분석 완료. [PREVIEW / EDIT] 뷰에서 확인하세요.", "success");
+            } catch (e) { 
+                writeLog(`오류 발생: ${e.message}`, "error"); 
+            } finally { btn.disabled = false; }
+        }
+
+        async function callGeminiAI(base64) {
+            const prompt = `당신은 한국어능력시험(TOPIK) 문항 분석 전문가입니다. 제공된 시험지 이미지에서 객관식 문항들을 정확히 인식하여 다음 JSON 배열 형식으로 반환하세요.
+
+[핵심 추출 규칙 - 반드시 지킬 것!]
+1. 문항 분류: 1~30번은 "type": "듣기", 31~70번은 "type": "읽기"
+2. 듣기/읽기 지문: 문장에 딸린 텍스트 본문이나 대화문은 "passage"에 넣습니다. 지문이 없으면 ""(빈 문자열)로 둡니다.
+3. 질문 내용: 실제 질문 내용만 "question"에 넣습니다.
+4. 보기 순서 교정: 보기는 번호 순서에 맞게 "opt1", "opt2", "opt3", "opt4"에 배정하세요.
+5. 이미지 필수: 모든 문항 객체에 반드시 "image": "" 속성을 포함하세요.
+6. 예시 문항 생성 제한: '<보기>' 상자가 물리적으로 존재하는 경우에만 "num": "예시" 문항을 생성하세요.
+7. ★문항 번호 중복 제거★: UI에서 번호(예: Q25)를 자동으로 표시하므로, "question" 필드에는 "25. ", "1. " 같은 문항 번호를 절대 쓰지 마세요.
+8. ★공통 지시문 배치 규칙 (매우 중요)★:
+    - <보기>(예시)가 있는 묶음 문항: "※ [1~4] 다음을 듣고..."와 같은 공통 지시문은 첫 번째 문제(1번)가 아니라 반드시 "num": "예시" 문항의 "question" 필드에 넣으세요. 이 경우 1번 문항의 "question"에는 "(4점)" 같은 배점만 남깁니다.
+    - <보기>(예시)가 없는 묶음 문항: 공통 지시문은 해당 묶음의 첫 번째 문항 "question"에 넣고, 줄바꿈(\\n) 후 개별 질문을 적으세요. (예: "※ [25~26]...답하십시오.\\n여자가 왜... (3점)")
+9. 대화문 줄바꿈 유지: 대화('가:', '나:')나 단락 구분은 반드시 줄바꿈 문자('\\n')를 포함하여 추출하세요.
+10. ★용어 자동 변환★: 원본 시험지에 "윗글"이라고 적혀 있더라도 반드시 "아래 글"로 변경하여 추출하세요.
+11. 정답 필드: "answer"는 무조건 빈 문자열 ""로 고정합니다.
+12. ★배점 필드★: 문제 텍스트에 "(3점)" 등 배점 표시가 있다면 해당 숫자를 정수형으로 "score"에 넣으세요. 없다면 "듣기"는 3, "읽기"는 2를 기본값으로 넣으세요.
+13. ★빈 페이지 처리★: 추출할 문항이 전혀 없다면 오직 빈 배열 [] 만 반환하세요.
+
+[출력 JSON 배열 포맷 예시 1: <보기>가 있는 경우]
+[
+  { "num": "예시", "type": "듣기", "passage": "가: 공책이 있어요?\\n나: __________________", "question": "※ [1~4] 다음을 듣고 <보기>와 같이 물음에 맞는 대답을 고르십시오.", "image": "", "opt1": "...", "opt2": "...", "opt3": "...", "opt4": "...", "answer": "", "score": 0 },
+  { "num": 1, "type": "듣기", "passage": "", "question": "(4점)", "image": "", "opt1": "...", "opt2": "...", "opt3": "...", "opt4": "...", "answer": "", "score": 4 }
+]
+
+[출력 JSON 배열 포맷 예시 2: <보기>가 없는 묶음 문항]
+[
+  { "num": 25, "type": "듣기", "passage": "", "question": "※ [25~26] 다음을 듣고 물음에 답하십시오.\\n여자가 왜 이 이야기를 하고 있는지 고르십시오. (3점)", "image": "", "opt1": "...", "opt2": "...", "opt3": "...", "opt4": "...", "answer": "", "score": 3 },
+  { "num": 26, "type": "듣기", "passage": "", "question": "들은 내용과 같은 것을 고르십시오. (4점)", "image": "", "opt1": "...", "opt2": "...", "opt3": "...", "opt4": "...", "answer": "", "score": 4 }
+]`;
+            
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const bodyData = JSON.stringify({ 
+                contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64 } }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            });
+
+            let retries = 5;
+            let delay = 2000;
+            let lastError = null;
+
+            for (let i = 0; i <= retries; i++) {
+                try {
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: bodyData
+                    });
+                    
+                    const responseText = await res.text();
+                    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+                    
+                    let data;
+                    try { data = JSON.parse(responseText); } catch (parseErr) { throw new Error("API 응답 형식이 올바르지 않음."); }
+                    
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+                    let cleanText = text.replace(/```json|```/g, '').trim();
+                    
+                    const arrayMatch = cleanText.match(/\[[\s\S]*\]/);
+                    if (arrayMatch) {
+                        cleanText = arrayMatch[0];
+                    }
+
+                    try { 
+                        const parsedJson = JSON.parse(cleanText); 
+                        return Array.isArray(parsedJson) ? parsedJson : [];
+                    } catch(e) { 
+                        return []; 
+                    }
+                } catch (error) {
+                    lastError = error;
+                    if (i < retries) {
+                        await new Promise(r => setTimeout(r, delay));
+                        delay *= 1.5; 
+                    }
+                }
+            }
+            throw new Error(`AI 호출 실패 (통신 불안정): ${lastError.message}`);
+        }
+
+        function updateAnswer(idx, val) {
+            let data = JSON.parse(document.getElementById('json-result').value);
+            data[idx].answer = val ? parseInt(val) : "";
+            document.getElementById('json-result').value = JSON.stringify(data, null, 2);
+        }
+
+        function openPreview() {
+            const raw = document.getElementById('json-result').value;
+            if (!raw) return customAlert("데이터가 없습니다.");
+            
+            let data;
+            try { data = JSON.parse(raw); } catch(e) { return customAlert("JSON 오류."); }
+
+            const previewContent = document.getElementById('preview-content');
+            previewContent.innerHTML = '';
+
+            data.forEach((q, idx) => {
+                const isExample = (q.num === '예시' || q.num === '보기');
+                
+                let formattedPassage = '';
+                if (q.passage && q.passage.trim()) {
+                    const parsedPassage = q.passage.replace(/\n/g, '<br>').replace(/&lt;보기&gt;|<보기>/gi, '');
+                    formattedPassage = `<div class="p-4 bg-slate-800/80 rounded-lg border border-slate-700 text-slate-300 text-sm mb-3 whitespace-pre-wrap"><div class="w-fit bg-slate-700/80 text-cyan-300 text-[10px] font-tech px-1.5 py-0.5 rounded mb-2 border border-slate-600">${isExample ? '&lt; EXAMPLE &gt;' : 'TEXT'}</div>${parsedPassage}</div>`;
+                }
+
+                let qText = q.question;
+                if (!isExample) {
+                    const numRegex1 = new RegExp(`^${q.num}\\.\\s*`);
+                    const numRegex2 = new RegExp(`\\n${q.num}\\.\\s*`);
+                    qText = qText.replace(numRegex1, '').replace(numRegex2, '\n');
+                }
+
+                qText = qText.replace(/윗글/g, '아래 글');
+
+                if (q.type === '듣기' && qText.includes('점)') && !isExample) {
+                    qText = `<span class="bg-slate-800 text-cyan-400 border border-slate-700 px-2 py-0.5 rounded text-xs mr-1 font-tech tracking-widest">[AUDIO]</span> <span class="text-white">${qText.replace(/\n/g, '<br>')}</span>`;
+                } else {
+                    qText = qText.replace(/\n/g, '<br>');
+                }
+                
+                const mainImageHTML = q.image 
+                    ? `<div class="relative bg-slate-900/50 p-2 border border-slate-800 rounded-lg mb-3 text-center">
+                           <img src="${q.image}" class="max-h-32 mx-auto rounded shadow-sm">
+                           <button onclick="removeImage(${idx}, 'image')" class="absolute top-2 right-2 bg-red-900/50 border border-red-500 text-red-400 px-2 py-1 rounded text-[10px] font-tech hover:bg-red-800/50 transition">DELETE</button>
+                       </div>`
+                    : `<div class="mb-3 text-right"><button onclick="attachImage(${idx}, 'image')" class="text-[10px] font-tech bg-slate-800 border border-slate-700 text-cyan-400 px-3 py-1.5 rounded hover:bg-slate-700 transition">+ MEDIA</button></div>`;
+
+                const optRows = [q.opt1, q.opt2, q.opt3, q.opt4].map((opt, i) => {
+                    const optKey = `opt${i+1}`;
+                    const isImg = isImage(opt);
+                    const renderContent = isImg ? `<img src="${opt}" class="max-h-16 object-contain rounded border border-slate-700">` : `<span class="text-slate-300 text-sm font-medium">${opt}</span>`;
+                    const actionBtn = isImg
+                        ? `<button onclick="removeImage(${idx}, '${optKey}')" class="text-[9px] bg-red-900/30 text-red-400 border border-red-500 px-1.5 py-1 rounded shrink-0 font-tech">RESET</button>`
+                        : `<button onclick="attachImage(${idx}, '${optKey}')" class="text-[9px] bg-slate-800 text-slate-400 border border-slate-700 px-1.5 py-1 rounded shrink-0 font-tech hover:text-white">IMAGE</button>`;
+
+                    return `
+                        <div class="p-2 border border-slate-800 rounded-lg flex items-center justify-between gap-2 bg-slate-900/40">
+                            <div class="flex items-center gap-3">
+                                <span class="text-slate-500 font-tech text-xs">${i+1}.</span>
+                                ${renderContent}
+                            </div>
+                            ${actionBtn}
+                        </div>`;
+                }).join('');
+
+                const answerSelectHTML = !isExample ? `
+                    <div class="mt-4 flex items-center gap-3 border-t border-slate-800 pt-3">
+                        <span class="text-[11px] font-tech text-emerald-500 tracking-widest bg-emerald-900/20 px-2 py-1 rounded border border-emerald-800">✅ CORRECT ANSWER</span>
+                        <select onchange="updateAnswer(${idx}, this.value)" class="bg-slate-900 border border-slate-700 text-emerald-400 p-1.5 rounded text-xs font-tech outline-none focus:border-emerald-500 transition-colors">
+                            <option value="" ${q.answer === "" ? "selected" : ""}>정답 미지정 (채점 불가)</option>
+                            <option value="1" ${String(q.answer) === "1" ? "selected" : ""}>1번 보기</option>
+                            <option value="2" ${String(q.answer) === "2" ? "selected" : ""}>2번 보기</option>
+                            <option value="3" ${String(q.answer) === "3" ? "selected" : ""}>3번 보기</option>
+                            <option value="4" ${String(q.answer) === "4" ? "selected" : ""}>4번 보기</option>
+                        </select>
+                        <span class="text-[10px] text-slate-500 font-kor ml-auto hidden md:inline">* 동기화 전 정답을 지정하세요.</span>
+                    </div>
+                ` : '';
+
+                const html = `
+                    <div class="bg-slate-900/60 p-5 rounded-xl shadow-sm border border-slate-800">
+                        <div class="flex items-center gap-2 mb-3 border-b border-slate-800 pb-2">
+                            <span class="font-bold ${isExample ? 'text-emerald-400 font-kor' : 'text-cyan-400 font-tech'} text-lg tracking-widest">${isExample ? '[예시]' : 'Q'+q.num}</span>
+                            <span class="bg-slate-800 border border-slate-700 text-slate-400 px-1.5 py-0.5 rounded text-[9px] font-tech uppercase tracking-widest">${q.type}</span>
+                            ${!isExample ? `<span class="bg-amber-900/40 border border-amber-700 text-amber-400 px-1.5 py-0.5 rounded text-[9px] font-tech uppercase tracking-widest">${q.score}점</span>` : ''}
+                        </div>
+                        <h4 class="font-medium text-white mb-3 text-sm">${qText}</h4>
+                        ${formattedPassage}
+                        ${mainImageHTML}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-1">${optRows}</div>
+                        ${answerSelectHTML}
+                    </div>
+                `;
+                previewContent.insertAdjacentHTML('beforeend', html);
+            });
+
+            document.getElementById('modal-preview').classList.remove('hidden');
+        }
+
+        function attachImage(idx, fieldName) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/png, image/jpeg, image/jpg';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if(!file) return;
+                customAlert("이미지 최적화 중... (구글 시트 용량 제한 적용)", true);
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width, height = img.height;
+                        
+                        const compressAndCheck = (w, h, q) => {
+                            canvas.width = w; canvas.height = h;
+                            const ctx = canvas.getContext('2d');
+                            ctx.fillStyle = "#ffffff";
+                            ctx.fillRect(0, 0, w, h);
+                            ctx.drawImage(img, 0, 0, w, h);
+                            return canvas.toDataURL('image/jpeg', q);
+                        };
+
+                        let MAX_WIDTH = 500;
+                        if (width > MAX_WIDTH) { 
+                            height *= MAX_WIDTH / width; 
+                            width = MAX_WIDTH; 
+                        }
+                        
+                        let quality = 0.8;
+                        let base64Str = compressAndCheck(width, height, quality);
+                        
+                        while (base64Str.length > 45000 && width > 100) {
+                            width *= 0.8;
+                            height *= 0.8;
+                            quality -= 0.1;
+                            if (quality < 0.3) quality = 0.3; 
+                            base64Str = compressAndCheck(width, height, quality);
+                        }
+
+                        if (base64Str.length > 50000) {
+                            document.getElementById('modal-alert').classList.add('hidden');
+                            return customAlert("이미지가 너무 복잡하여 구글 시트 용량(5만자) 제한을 초과합니다. 단순한 이미지를 사용해주세요.");
+                        }
+                        
+                        let data = JSON.parse(document.getElementById('json-result').value);
+                        if(!data[idx]['_orig_' + fieldName]) data[idx]['_orig_' + fieldName] = data[idx][fieldName];
+                        data[idx][fieldName] = base64Str;
+                        
+                        document.getElementById('json-result').value = JSON.stringify(data, null, 2);
+                        document.getElementById('modal-alert').classList.add('hidden');
+                        openPreview(); 
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            };
+            input.click();
+        }
+
+        function removeImage(idx, fieldName) {
+            let data = JSON.parse(document.getElementById('json-result').value);
+            data[idx][fieldName] = data[idx]['_orig_' + fieldName] !== undefined ? data[idx]['_orig_' + fieldName] : "";
+            document.getElementById('json-result').value = JSON.stringify(data, null, 2);
+            openPreview();
+        }
+
+        function closePreview() { document.getElementById('modal-preview').classList.add('hidden'); }
+
+        async function saveToSheet() {
+            const raw = document.getElementById('json-result').value;
+            if(!raw) return;
+            let data;
+            try { 
+                data = JSON.parse(raw).map(o => [
+                    o.num !== undefined ? o.num : "",
+                    o.type !== undefined ? o.type : "",
+                    o.passage !== undefined ? o.passage : "",
+                    o.question !== undefined ? o.question : "",
+                    o.image !== undefined ? o.image : "",
+                    o.opt1 !== undefined ? o.opt1 : "",
+                    o.opt2 !== undefined ? o.opt2 : "",
+                    o.opt3 !== undefined ? o.opt3 : "",
+                    o.opt4 !== undefined ? o.opt4 : "",
+                    o.answer !== undefined ? o.answer : "",
+                    o.score !== undefined ? o.score : ""
+                ]); 
+            } catch(e) { return customAlert("오류 발생"); }
+            
+            const targetExam = document.getElementById('admin-save-exam-select').value || activeExamName;
+            
+            writeLog(`[${targetExam}] 슬롯에 저장 중...`, "info");
+            try {
+                await fetch(GAS_URL, { 
+                    method: 'POST', mode: 'no-cors', 
+                    body: JSON.stringify({ action: 'saveQuestions', examName: targetExam, questionsData: data }) 
+                });
+                customAlert(`'${targetExam}' 슬롯에 동기화 완료!\n새로고침 합니다.`);
+                setTimeout(() => location.reload(), 2000);
+            } catch(e) { writeLog("저장 실패", "error"); }
+        }
+
+        function zoomImg(s) { if(!s) return; document.getElementById('zoom-img').src = s; document.getElementById('modal-zoom').classList.remove('hidden'); }
+
+        document.addEventListener('keydown', function(e) {
+            const testScreen = document.getElementById('screen-test');
+            if (!testScreen || testScreen.classList.contains('hidden')) return;
+            
+            if (['1', '2', '3', '4'].includes(e.key)) {
+                const idx = parseInt(e.key) - 1;
+                const options = document.querySelectorAll('.option-input');
+                if (options && options[idx]) {
+                    options[idx].checked = true;
+                    saveAnswer(idx);
+                }
+            }
+            
+            if (e.key === 'ArrowRight' || e.key === 'Enter') {
+                const btnNext = document.getElementById('btn-next');
+                if (btnNext && !btnNext.disabled) btnNext.click();
+            }
+            
+            if (e.key === 'ArrowLeft') {
+                const btnPrev = document.getElementById('btn-prev');
+                if (btnPrev && !btnPrev.disabled) btnPrev.click();
+            }
+        });
+    </script>
+</body>
+</html>
