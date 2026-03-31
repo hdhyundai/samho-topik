@@ -2,8 +2,8 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <!-- 모바일 환경 노치 및 안전 영역(safe-area) 대응을 위해 viewport-fit=cover 추가 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- 브라우저별 화면 축소 방지 및 안전 영역 대응 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover">
     <title>TOPIK CBT Pro - DX Evaluation System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -27,7 +27,9 @@
             color: #e2e8f0; 
             -webkit-tap-highlight-color: transparent; 
             margin: 0; padding: 0; 
-            /* 기본 최소 높이 설정 */
+            /* 가로 축소 방지 및 기본 최소 크기 설정 */
+            min-width: 320px;
+            overflow-x: hidden;
             min-height: 100vh;
             min-height: calc(var(--vh, 1vh) * 100);
         }
