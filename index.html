@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <!-- 브라우저별 화면 축소 방지 및 안전 영역 대응 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover">
+    
+    <!-- 🔥 모바일 앱 모드 (브라우저 상/하단 UI 숨김 지원) -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#030712">
+
     <title>TOPIK CBT Pro - DX Evaluation System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -218,6 +225,20 @@
         setScreenSize();
         window.addEventListener('resize', setScreenSize);
         window.addEventListener('orientationchange', setScreenSize);
+
+        // 🔥 전체화면(Fullscreen) 모드 진입 함수 (브라우저 상/하단 메뉴바 숨김)
+        function enterFullscreen() {
+            const doc = document.documentElement;
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                if (doc.requestFullscreen) {
+                    doc.requestFullscreen().catch(err => console.warn(err));
+                } else if (doc.webkitRequestFullscreen) { /* Safari */
+                    doc.webkitRequestFullscreen();
+                } else if (doc.msRequestFullscreen) { /* IE11 */
+                    doc.msRequestFullscreen();
+                }
+            }
+        }
     </script>
 </head>
 <body class="bg-system-pattern flex items-center justify-center md:p-4 pb-[env(safe-area-inset-bottom)]">
@@ -277,7 +298,7 @@
                     Test of Proficiency in Korean
                 </h3>
 
-                <!-- START 버튼 -->
+                <!-- START 버튼 (전체화면 모드 진입) -->
                 <button onclick="goToIntro()" class="btn-start-system w-full max-w-md py-5 rounded flex items-center justify-center gap-3 mb-8">
                     <span class="font-tech text-xl md:text-2xl tracking-[0.2em]">START SYSTEM</span>
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
@@ -861,6 +882,7 @@
         }
 
         function goToIntro() {
+            enterFullscreen(); // 모바일 브라우저 UI 숨기기
             updateIntroLanguage();
             document.getElementById('screen-main').classList.add('hidden');
             document.getElementById('screen-intro').classList.remove('hidden');
@@ -905,6 +927,7 @@
         }
 
         function beginExam() {
+            enterFullscreen(); // 모바일 브라우저 UI 숨기기
             document.getElementById('screen-waiting').classList.add('hidden');
             document.getElementById('screen-test').classList.remove('hidden');
             document.getElementById('timer-box').classList.remove('hidden');
