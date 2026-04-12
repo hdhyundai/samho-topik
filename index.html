@@ -642,12 +642,102 @@
         </div>
     </div>
 
-    <!-- 이미지 확대 -->
-    <div id="modal-zoom" class="hidden fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 cursor-zoom-out" onclick="this.classList.add('hidden')">
-        <img id="zoom-img" src="" class="max-w-full max-h-[90vh] object-contain rounded border border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.8)]">
+    <!-- 이미지 확대 (핀치 줌 및 드래그 지원) -->
+    <div id="modal-zoom" class="hidden fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 cursor-zoom-out" onclick="closeZoomModal(event)">
+        <!-- 이미지 터치/드래그 기능을 위해 touch-none 적용 및 transform 설정 -->
+        <img id="zoom-img" src="" class="max-w-full max-h-[90vh] object-contain rounded border border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.8)] touch-none transition-transform duration-75">
     </div>
 
     <script>
+        // --- 줌 모달 로직 (핀치 투 줌 & 패닝) ---
+        let zoomImgEl, zoomModalEl;
+        let currentScale = 1, baseScale = 1;
+        let translateX = 0, translateY = 0, baseTranslateX = 0, baseTranslateY = 0;
+        let startX = 0, startY = 0;
+        let initialPinchDistance = 0;
+        let isZoomMoving = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            zoomImgEl = document.getElementById('zoom-img');
+            zoomModalEl = document.getElementById('modal-zoom');
+
+            // 배경 스크롤 원천 차단
+            zoomModalEl.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+            }, { passive: false });
+
+            // 터치 시작 (팬 또는 핀치 줌)
+            zoomImgEl.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    initialPinchDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                    baseScale = currentScale;
+                } else if (e.touches.length === 1) {
+                    startX = e.touches[0].pageX;
+                    startY = e.touches[0].pageY;
+                    baseTranslateX = translateX;
+                    baseTranslateY = translateY;
+                }
+                isZoomMoving = false;
+            });
+
+            // 터치 이동 중 화면 조작
+            zoomImgEl.addEventListener('touchmove', (e) => {
+                isZoomMoving = true;
+                if (e.touches.length === 2) {
+                    // 두 손가락 줌
+                    const currentDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                    currentScale = Math.min(Math.max(1, baseScale * (currentDistance / initialPinchDistance)), 5); // 1배 ~ 5배 제한
+                    applyZoomTransform();
+                } else if (e.touches.length === 1 && currentScale > 1) {
+                    // 확대된 상태에서 한 손가락 이동 (패닝)
+                    translateX = baseTranslateX + (e.touches[0].pageX - startX);
+                    translateY = baseTranslateY + (e.touches[0].pageY - startY);
+                    applyZoomTransform();
+                }
+            });
+
+            // 터치 종료
+            zoomImgEl.addEventListener('touchend', (e) => {
+                if (e.touches.length < 2) baseScale = currentScale;
+                if (e.touches.length === 0) {
+                    baseTranslateX = translateX;
+                    baseTranslateY = translateY;
+                    // 확대/이동 직후 바로 창이 닫히는 현상 방지
+                    setTimeout(() => { isZoomMoving = false; }, 100);
+                }
+            });
+        });
+
+        // 스케일 및 이동 적용 함수
+        function applyZoomTransform() {
+            if (zoomImgEl) {
+                zoomImgEl.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
+            }
+        }
+
+        // 이미지 클릭 시 모달 열기
+        function zoomImg(s) {
+            if(!s) return;
+            const modal = document.getElementById('modal-zoom');
+            const img = document.getElementById('zoom-img');
+            img.src = s;
+            
+            // 열릴 때마다 이미지 위치와 크기를 초기화
+            currentScale = 1; baseScale = 1;
+            translateX = 0; translateY = 0; baseTranslateX = 0; baseTranslateY = 0;
+            isZoomMoving = false;
+            applyZoomTransform();
+            
+            modal.classList.remove('hidden');
+        }
+
+        // 모달창 닫기 (단, 확대/이동 조작 중에는 안 닫힘)
+        function closeZoomModal(e) {
+            if (isZoomMoving) return;
+            document.getElementById('modal-zoom').classList.add('hidden');
+        }
+        // ---------------------------------
+
         function customAlert(msg, isLoader = false) {
             document.getElementById('alert-message').innerHTML = msg;
             document.getElementById('alert-icon').textContent = isLoader ? '⏳' : '!';
@@ -1542,8 +1632,6 @@
                 setTimeout(() => location.reload(), 2000);
             } catch(e) { writeLog("저장 실패", "error"); }
         }
-
-        function zoomImg(s) { if(!s) return; document.getElementById('zoom-img').src = s; document.getElementById('modal-zoom').classList.remove('hidden'); }
 
         document.addEventListener('keydown', function(e) {
             const testScreen = document.getElementById('screen-test');
